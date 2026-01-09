@@ -1,17 +1,18 @@
 # Proxmox VDI Client (Go)
 
-A modern VDI (Virtual Desktop Infrastructure) client for Proxmox VE, written in Go with Fyne GUI framework.
+A modern VDI (Virtual Desktop Infrastructure) client for Proxmox VE, written in Go.
 
 ## Features
 
-- **User-friendly GUI**: Built with Fyne for a native look and feel across platforms
+- **CLI Interface**: Simple command-line interface for VM management
 - **Proxmox Integration**: Full integration with Proxmox VE API
 - **SPICE Protocol**: Connect to VMs using the SPICE protocol via virt-viewer
 - **Multiple Authentication**: Support for username/password, API tokens, and TOTP/2FA
 - **VM Management**: Start, stop, and reset virtual machines
-- **Multiple Host Support**: Connect to multiple Proxmox clusters
+- **Multiple Host Support**: Connect to multiple Proxmox clusters with load balancing
 - **Flexible Configuration**: INI file or HTTP-based configuration
 - **Cross-Platform**: Works on Linux, Windows, and macOS
+- **Debug Mode**: Comprehensive logging for troubleshooting
 
 ## Requirements
 
@@ -21,13 +22,28 @@ A modern VDI (Virtual Desktop Infrastructure) client for Proxmox VE, written in 
   - Windows: Download from https://virt-manager.org/download/
   - macOS: `brew install virt-viewer`
 
-### Build Requirements
-- Go 1.20 or later
-- Fyne dependencies (handled automatically by Go modules)
-
 ## Installation
 
+### Download Pre-built Binaries (Recommended)
+
+Download the latest release for your platform from the [Releases page](https://github.com/javadmohebbi/go-pve-vdi/releases).
+
+Available platforms:
+- Linux (amd64, 386, arm64, arm)
+- macOS (amd64 Intel, arm64 Apple Silicon)
+- Windows (amd64, 386)
+
+```bash
+# Example for Linux AMD64
+wget https://github.com/javadmohebbi/go-pve-vdi/releases/latest/download/go-pve-vdi-linux-amd64
+chmod +x go-pve-vdi-linux-amd64
+./go-pve-vdi-linux-amd64 -cli -config_location ./vdiclient.ini
+```
+
 ### From Source
+
+**Build Requirements:**
+- Go 1.23 or later
 
 ```bash
 # Clone the repository
