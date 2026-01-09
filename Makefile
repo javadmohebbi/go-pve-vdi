@@ -6,13 +6,14 @@ VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_DIR=build
 LDFLAGS=-ldflags "-s -w -X main.version=$(VERSION)"
 
-.PHONY: all clean linux linux-amd64 linux-386 linux-arm linux-arm64 darwin darwin-amd64 darwin-arm64 windows windows-amd64 windows-386 release run help
+# .PHONY: all clean linux linux-amd64 linux-386 linux-arm linux-arm64 darwin darwin-amd64 darwin-arm64 windows windows-amd64 windows-386 release run help
+.PHONY: all clean linux linux-amd64 linux-386 linux-arm linux-arm64 release run help
 
 # Default target
 all: linux
 
 # Build all platforms
-release: linux darwin windows checksums
+release: linux checksums
 
 # Build all Linux releases
 linux: linux-amd64 linux-386 linux-arm64 linux-arm
@@ -45,40 +46,6 @@ linux-arm:
 	GOOS=linux GOARCH=arm CGO_ENABLED=0 go build $(LDFLAGS) -o $(BUILD_DIR)/$(APP_NAME)-linux-arm
 	@echo "Built: $(BUILD_DIR)/$(APP_NAME)-linux-arm"
 
-# Build all macOS releases
-darwin: darwin-amd64 darwin-arm64
-
-# Build macOS AMD64
-darwin-amd64:
-	@echo "Building macOS AMD64..."
-	@mkdir -p $(BUILD_DIR)
-	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build $(LDFLAGS) -o $(BUILD_DIR)/$(APP_NAME)-darwin-amd64
-	@echo "Built: $(BUILD_DIR)/$(APP_NAME)-darwin-amd64"
-
-# Build macOS ARM64 (Apple Silicon)
-darwin-arm64:
-	@echo "Building macOS ARM64..."
-	@mkdir -p $(BUILD_DIR)
-	GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build $(LDFLAGS) -o $(BUILD_DIR)/$(APP_NAME)-darwin-arm64
-	@echo "Built: $(BUILD_DIR)/$(APP_NAME)-darwin-arm64"
-
-# Build all Windows releases
-windows: windows-amd64 windows-386
-
-# Build Windows AMD64
-windows-amd64:
-	@echo "Building Windows AMD64..."
-	@mkdir -p $(BUILD_DIR)
-	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build $(LDFLAGS) -o $(BUILD_DIR)/$(APP_NAME)-windows-amd64.exe
-	@echo "Built: $(BUILD_DIR)/$(APP_NAME)-windows-amd64.exe"
-
-# Build Windows 386
-windows-386:
-	@echo "Building Windows 386..."
-	@mkdir -p $(BUILD_DIR)
-	GOOS=windows GOARCH=386 CGO_ENABLED=0 go build $(LDFLAGS) -o $(BUILD_DIR)/$(APP_NAME)-windows-386.exe
-	@echo "Built: $(BUILD_DIR)/$(APP_NAME)-windows-386.exe"
-
 # Generate checksums
 checksums:
 	@echo "Generating checksums..."
@@ -110,8 +77,6 @@ help:
 	@echo "  make              Build all Linux releases"
 	@echo "  make release      Build all platforms and generate checksums"
 	@echo "  make linux        Build all Linux releases (amd64, 386, arm64, arm)"
-	@echo "  make darwin       Build all macOS releases (amd64, arm64)"
-	@echo "  make windows      Build all Windows releases (amd64, 386)"
 	@echo "  make linux-amd64  Build Linux 64-bit"
 	@echo "  make linux-386    Build Linux 32-bit"
 	@echo "  make build        Build for current platform"
