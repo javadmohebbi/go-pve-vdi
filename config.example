@@ -1,0 +1,265 @@
+# Proxmox VDI Client Configuration Example
+# Copy this file to one of the following locations:
+#
+# Linux:
+#   ~/.config/VDIClient/vdiclient.ini
+#   /etc/vdiclient/vdiclient.ini
+#   /usr/local/etc/vdiclient/vdiclient.ini
+#
+# Windows:
+#   %APPDATA%\VDIClient\vdiclient.ini
+#   %PROGRAMFILES%\VDIClient\vdiclient.ini
+#
+# macOS:
+#   ~/.config/VDIClient/vdiclient.ini
+#   /etc/vdiclient/vdiclient.ini
+
+# ============================================================================
+# EXAMPLE 1: Simple Single-Host Configuration (Username/Password)
+# ============================================================================
+
+[General]
+title=My Company VDI
+kiosk=false
+viewer_kiosk=true
+fullscreen=true
+guest_type=both
+show_reset=false
+
+[Authentication]
+auth_backend=pve
+auth_totp=false
+tls_verify=true
+
+[Hosts]
+proxmox.example.com=8006
+
+# ============================================================================
+# EXAMPLE 2: Multiple Hosts with Failover (Username/Password)
+# ============================================================================
+
+#[General]
+#title=VDI Login
+#fullscreen=true
+#guest_type=qemu
+#
+#[Authentication]
+#auth_backend=pve
+#auth_totp=false
+#tls_verify=true
+#
+#[Hosts]
+#pve1.example.com=8006
+#pve2.example.com=8006
+#pve3.example.com=8006
+
+# ============================================================================
+# EXAMPLE 3: API Token Authentication (No password prompt)
+# ============================================================================
+
+#[General]
+#title=VDI Auto-Login
+#kiosk=true
+#
+#[Authentication]
+#auth_backend=pve
+#user=vdiuser
+#token_name=vdi-token
+#token_value=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+#tls_verify=true
+#
+#[Hosts]
+#proxmox.example.com=8006
+
+# ============================================================================
+# EXAMPLE 4: With TOTP/2FA
+# ============================================================================
+
+#[General]
+#title=Secure VDI
+#
+#[Authentication]
+#auth_backend=pve
+#auth_totp=true
+#tls_verify=true
+#
+#[Hosts]
+#proxmox.example.com=8006
+
+# ============================================================================
+# EXAMPLE 5: Multiple Host Groups (New Format)
+# ============================================================================
+
+#[General]
+#title=Multi-Cluster VDI
+#window_width=800
+#window_height=600
+#
+#[Hosts.Production]
+#hostpool={"pve-prod1.example.com": 8006, "pve-prod2.example.com": 8006}
+#auth_backend=pve
+#user=
+#auth_totp=false
+#tls_verify=true
+#
+#[Hosts.Development]
+#hostpool={"pve-dev1.example.com": 8006}
+#auth_backend=pve
+#user=
+#auth_totp=false
+#tls_verify=false
+#
+#[Hosts.Testing]
+#hostpool={"pve-test1.example.com": 8006}
+#auth_backend=pve
+#user=testuser
+#token_name=test-token
+#token_value=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+#tls_verify=false
+
+# ============================================================================
+# EXAMPLE 6: Auto-Connect to Specific VM
+# ============================================================================
+
+#[General]
+#title=Kiosk VDI
+#kiosk=true
+#viewer_kiosk=true
+#
+#[Authentication]
+#auth_backend=pve
+#user=kioskuser
+#token_name=kiosk-token
+#token_value=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+#auto_vmid=100
+#tls_verify=true
+#
+#[Hosts]
+#proxmox.example.com=8006
+
+# ============================================================================
+# EXAMPLE 7: Development/Testing (No SSL Verification)
+# ============================================================================
+
+#[General]
+#title=Dev VDI
+#
+#[Authentication]
+#auth_backend=pve
+#auth_totp=false
+#tls_verify=false
+#
+#[Hosts]
+#192.168.1.100=8006
+
+# ============================================================================
+# EXAMPLE 8: With Password Reset and Custom Window Size
+# ============================================================================
+
+#[General]
+#title=Corporate VDI
+#window_width=1024
+#window_height=768
+#show_reset=true
+#
+#[Authentication]
+#auth_backend=pve
+#auth_totp=true
+#tls_verify=true
+#pwresetcmd=xdg-open https://password.example.com/reset
+#
+#[Hosts]
+#proxmox.example.com=8006
+
+# ============================================================================
+# EXAMPLE 9: With SPICE Proxy Redirect
+# ============================================================================
+
+#[General]
+#title=VDI with Proxy
+#
+#[Authentication]
+#auth_backend=pve
+#tls_verify=true
+#
+#[Hosts]
+#proxmox.example.com=8006
+#
+#[SpiceProxyRedirect]
+#internal-proxy.local=external-proxy.example.com
+
+# ============================================================================
+# EXAMPLE 10: With Additional Virt-Viewer Parameters
+# ============================================================================
+
+#[General]
+#title=Secure VDI
+#
+#[Authentication]
+#auth_backend=pve
+#tls_verify=true
+#
+#[Hosts]
+#proxmox.example.com=8006
+#
+#[AdditionalParameters]
+#secure-channels=main;inputs;cursor;playback;record;display;usbredir;smartcard
+#enable-usbredir=yes
+
+# ============================================================================
+# CONFIGURATION OPTIONS REFERENCE
+# ============================================================================
+
+# [General] Section Options:
+# --------------------------
+# title              - Window title (default: "VDI Login")
+# theme              - GUI theme (currently unused in Fyne version)
+# icon               - Path to icon file
+# logo               - Path to logo image
+# kiosk              - Hide window decorations (true/false, default: false)
+# viewer_kiosk       - Launch viewer in kiosk mode (true/false, default: true)
+# fullscreen         - Launch viewer in fullscreen (true/false, default: true)
+# inidebug           - Show SPICE config debug window (true/false, default: false)
+# guest_type         - VM type filter: "both", "qemu", or "lxc" (default: "both")
+# show_reset         - Show VM reset button (true/false, default: false)
+# show_hibernate     - Show VM hibernate button (true/false, default: false)
+# window_width       - Window width in pixels (optional)
+# window_height      - Window height in pixels (optional)
+
+# [Authentication] Section Options (Legacy Format):
+# -------------------------------------------------
+# auth_backend       - Authentication backend: "pve" or "pam" (default: "pve")
+# user               - Default username (leave empty to prompt)
+# token_name         - API token name (for token auth)
+# token_value        - API token value (for token auth)
+# auth_totp          - Enable TOTP/2FA (true/false, default: false)
+# tls_verify         - Verify SSL certificates (true/false, default: true)
+# pwresetcmd         - Command to run for password reset
+# auto_vmid          - Auto-connect to specific VM ID (integer)
+
+# [Hosts] Section (Legacy Format):
+# --------------------------------
+# Format: hostname=port
+# Example: proxmox1.example.com=8006
+
+# [Hosts.GroupName] Section (New Format):
+# ---------------------------------------
+# hostpool           - JSON object with hosts: {"host1": port1, "host2": port2}
+# auth_backend       - Same as legacy format
+# user               - Same as legacy format
+# token_name         - Same as legacy format
+# token_value        - Same as legacy format
+# auth_totp          - Same as legacy format
+# tls_verify         - Same as legacy format
+# pwresetcmd         - Same as legacy format
+# auto_vmid          - Same as legacy format
+
+# [SpiceProxyRedirect] Section (Optional):
+# ----------------------------------------
+# Format: old-hostname=new-hostname
+# Maps internal SPICE proxy hostnames to external ones
+
+# [AdditionalParameters] Section (Optional):
+# ------------------------------------------
+# Any additional virt-viewer command line parameters
+# Format: parameter=value

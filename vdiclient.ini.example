@@ -1,0 +1,99 @@
+# Proxmox VDI Client Configuration File
+# Place this file in one of the following locations:
+# Linux: ~/.config/VDIClient/vdiclient.ini or /etc/vdiclient/vdiclient.ini
+# Windows: %APPDATA%\VDIClient\vdiclient.ini or %PROGRAMFILES%\VDIClient\vdiclient.ini
+
+[General]
+# Window title
+title=VDI Login
+
+# Theme (currently not used in Fyne version)
+theme=LightBlue
+
+# Path to icon file (optional)
+#icon=/path/to/icon.png
+
+# Path to logo image (optional)
+#logo=/path/to/logo.png
+
+# Kiosk mode - hide window decorations
+kiosk=false
+
+# Viewer kiosk mode - launch viewer in kiosk mode
+viewer_kiosk=true
+
+# Fullscreen mode for viewer
+fullscreen=true
+
+# Debug mode - show SPICE configuration
+inidebug=false
+
+# Guest type filter: both, qemu, or lxc
+guest_type=both
+
+# Show reset button for VMs
+show_reset=false
+
+# Show hibernate button for VMs
+show_hibernate=false
+
+# Window dimensions (optional)
+#window_width=800
+#window_height=600
+
+# Legacy configuration format (single host set)
+[Authentication]
+# Authentication backend (usually 'pve' or 'pam')
+auth_backend=pve
+
+# Default username (optional - leave empty to prompt)
+user=
+
+# API Token authentication (optional - if set, password auth is disabled)
+#token_name=mytoken
+#token_value=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+# Enable TOTP/2FA
+auth_totp=false
+
+# Verify SSL certificates
+tls_verify=true
+
+# Password reset command (optional)
+#pwresetcmd=xdg-open https://password-reset.example.com
+
+# Auto-connect to specific VMID (optional)
+#auto_vmid=100
+
+[Hosts]
+# Proxmox host and port (can specify multiple)
+proxmox1.example.com=8006
+proxmox2.example.com=8006
+
+# New configuration format (multiple host sets)
+# Uncomment and configure as needed
+#[Hosts.Production]
+#hostpool={"proxmox1.example.com": 8006, "proxmox2.example.com": 8006}
+#auth_backend=pve
+#user=
+#token_name=
+#token_value=
+#auth_totp=false
+#tls_verify=true
+#pwresetcmd=
+#auto_vmid=
+
+#[Hosts.Development]
+#hostpool={"proxmox-dev.example.com": 8006}
+#auth_backend=pve
+#user=
+#auth_totp=false
+#tls_verify=false
+
+# SPICE Proxy redirect configuration (optional)
+#[SpiceProxyRedirect]
+#old-proxy-hostname=new-proxy-hostname
+
+# Additional virt-viewer parameters (optional)
+#[AdditionalParameters]
+#secure-channels=main;inputs;cursor;playback;record;display;usbredir;smartcard
