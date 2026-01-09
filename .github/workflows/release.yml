@@ -39,18 +39,6 @@ jobs:
           # Linux ARM
           GOOS=linux GOARCH=arm CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${{ steps.get_version.outputs.VERSION }}" -o go-pve-vdi-linux-arm
 
-          # macOS AMD64
-          GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${{ steps.get_version.outputs.VERSION }}" -o go-pve-vdi-darwin-amd64
-
-          # macOS ARM64 (Apple Silicon)
-          GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${{ steps.get_version.outputs.VERSION }}" -o go-pve-vdi-darwin-arm64
-
-          # Windows AMD64
-          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${{ steps.get_version.outputs.VERSION }}" -o go-pve-vdi-windows-amd64.exe
-
-          # Windows 386
-          GOOS=windows GOARCH=386 CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${{ steps.get_version.outputs.VERSION }}" -o go-pve-vdi-windows-386.exe
-
       - name: Create checksums
         run: |
           sha256sum go-pve-vdi-* > checksums.txt
@@ -63,10 +51,6 @@ jobs:
             go-pve-vdi-linux-386
             go-pve-vdi-linux-arm64
             go-pve-vdi-linux-arm
-            go-pve-vdi-darwin-amd64
-            go-pve-vdi-darwin-arm64
-            go-pve-vdi-windows-amd64.exe
-            go-pve-vdi-windows-386.exe
             checksums.txt
           draft: false
           prerelease: false
