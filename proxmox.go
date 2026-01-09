@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	proxmox "github.com/luthermonson/go-proxmox"
@@ -28,6 +29,9 @@ func NewProxmoxClient(cfg *Config) *ProxmoxClient {
 func (pc *ProxmoxClient) Authenticate(username, password, totp string) (bool, bool, error) {
 	hostSet := pc.Config.Hosts[pc.Config.CurrentHostSet]
 
+	DebugLog("Starting authentication for user: %s", username)
+	DebugLog("Host pool size: %d", len(hostSet.HostPool))
+
 	// Shuffle host pool to distribute load
 	rand.Seed(time.Now().UnixNano())
 	hostPool := make([]HostInfo, len(hostSet.HostPool))
@@ -41,6 +45,7 @@ func (pc *ProxmoxClient) Authenticate(username, password, totp string) (bool, bo
 
 	// Try each host in the pool
 	for _, hostInfo := range hostPool {
+		DebugLog("Attempting connection to %s:%d", hostInfo.Host, hostInfo.Port)
 		connected := false
 		authenticated := false
 
@@ -60,6 +65,7 @@ func (pc *ProxmoxClient) Authenticate(username, password, totp string) (bool, bo
 		// Authenticate based on credentials type
 		if hostSet.TokenName != "" && hostSet.TokenValue != "" {
 			// API Token authentication
+			DebugLog("Using API token authentication")
 			tokenStr := fmt.Sprintf("%s=%s", hostSet.TokenName, hostSet.TokenValue)
 			userID := fmt.Sprintf("%s@%s", username, hostSet.Backend)
 
@@ -73,9 +79,13 @@ func (pc *ProxmoxClient) Authenticate(username, password, totp string) (bool, bo
 			if err == nil {
 				connected = true
 				authenticated = true
+				DebugLog("API token authentication successful")
+			} else {
+				DebugLog("API token authentication failed: %v", err)
 			}
 		} else {
 			// Username/Password authentication
+			DebugLog("Using username/password authentication")
 			credentials := &proxmox.Credentials{
 				Username: fmt.Sprintf("%s@%s", username, hostSet.Backend),
 				Password: password,
@@ -83,6 +93,7 @@ func (pc *ProxmoxClient) Authenticate(username, password, totp string) (bool, bo
 
 			// Add OTP if provided
 			if totp != "" {
+				DebugLog("TOTP provided")
 				credentials.Otp = totp
 			}
 
@@ -96,17 +107,23 @@ func (pc *ProxmoxClient) Authenticate(username, password, totp string) (bool, bo
 			if err == nil {
 				connected = true
 				authenticated = true
+				DebugLog("Password authentication successful")
+			} else {
+				DebugLog("Password authentication failed: %v", err)
 			}
 		}
 
 		if connected && authenticated {
+			DebugLog("Successfully authenticated to %s:%d", hostInfo.Host, hostInfo.Port)
 			return true, true, nil
 		}
 
 		if connected && !authenticated {
+			DebugLog("Connected but authentication failed")
 			return true, false, err
 		}
 
+		DebugLog("Connection failed to %s:%d - trying next host", hostInfo.Host, hostInfo.Port)
 		lastErr = err
 	}
 
@@ -129,39 +146,29 @@ func (pc *ProxmoxClient) GetVMs() ([]*VMInfo, error) {
 		return nil, fmt.Errorf("unable to get cluster info: %w", err)
 	}
 
-	// Get all nodes - cluster.Nodes is already a slice, not a function
-	onlineNodes := make(map[string]bool)
-	for _, node := range cluster.Nodes {
-		if node.Status == "online" {
-			onlineNodes[node.Node] = true
-		}
-	}
-
 	// Get all VMs
+	DebugLog("Fetching cluster resources (type: vm)")
 	resources, err := cluster.Resources(ctx, "vm")
 	if err != nil {
 		return nil, fmt.Errorf("unable to get VMs: %w", err)
 	}
 
+	DebugLog("Found %d total resources", len(resources))
+
 	for _, resource := range resources {
-		// Skip VMs on offline nodes
-		if !onlineNodes[resource.Node] {
-			continue
-		}
+		DebugLog("Resource: VMID=%d Name=%s Node=%s Type=%s Status=%s Template=%d",
+			resource.VMID, resource.Name, resource.Node, resource.Type, resource.Status, resource.Template)
 
-		// Skip templates
+		// Skip templates only
 		if resource.Template == 1 {
+			DebugLog("  Skipping (template)")
 			continue
 		}
 
-		// Filter by guest type if configured
+		// Determine VM type
 		vmType := "qemu"
 		if resource.Type == "lxc" {
 			vmType = "lxc"
-		}
-
-		if pc.Config.GuestType != "both" && pc.Config.GuestType != vmType {
-			continue
 		}
 
 		vm := &VMInfo{
@@ -170,12 +177,14 @@ func (pc *ProxmoxClient) GetVMs() ([]*VMInfo, error) {
 			Node:   resource.Node,
 			Type:   vmType,
 			Status: resource.Status,
-			Lock:   "", // ClusterResource doesn't have Lock field
+			Lock:   "",
 		}
 
 		vms = append(vms, vm)
+		DebugLog("  Added to list")
 	}
 
+	DebugLog("Returning %d VMs", len(vms))
 	return vms, nil
 }
 
@@ -307,37 +316,78 @@ func (pc *ProxmoxClient) GetSPICEConfig(vmNode string, vmID int, vmType string) 
 		return nil, fmt.Errorf("not connected to Proxmox")
 	}
 
+	if vmType != "qemu" {
+		return nil, fmt.Errorf("SPICE only supported for QEMU VMs, not %s", vmType)
+	}
+
 	ctx := context.Background()
+	DebugLog("Getting SPICE config for VM %d on node %s", vmID, vmNode)
 
-	node, err := pc.Client.Node(ctx, vmNode)
+	// Make direct API call to get SPICE proxy configuration
+	// POST /api2/json/nodes/{node}/qemu/{vmid}/spiceproxy
+	url := fmt.Sprintf("/nodes/%s/qemu/%d/spiceproxy", vmNode, vmID)
+
+	DebugLog("Calling SPICE proxy API: %s", url)
+
+	// Use the client's internal request method
+	var result map[string]interface{}
+	err := pc.Client.Post(ctx, url, nil, &result)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get node: %w", err)
+		return nil, fmt.Errorf("failed to get SPICE proxy config: %w", err)
 	}
 
-	// Get VM
-	if vmType == "qemu" {
-		vm, err := node.VirtualMachine(ctx, vmID)
-		if err != nil {
-			return nil, fmt.Errorf("unable to get VM: %w", err)
+	DebugLog("SPICE proxy response: %+v", result)
+
+	// Convert result to string map
+	spiceConfig := make(map[string]string)
+	for key, value := range result {
+		spiceConfig[key] = fmt.Sprintf("%v", value)
+	}
+
+	DebugLog("SpiceProxyConv map has %d entries", len(pc.Config.SpiceProxyConv))
+	for k, v := range pc.Config.SpiceProxyConv {
+		DebugLog("  Map entry: '%s' => '%s'", k, v)
+	}
+
+	// Handle proxy redirection if configured
+	if proxyVal, ok := spiceConfig["proxy"]; ok {
+		DebugLog("Original proxy from API: '%s'", proxyVal)
+		// Check if we need to convert the proxy hostname
+		if strings.HasPrefix(proxyVal, "http://") {
+			hostname := strings.ToLower(proxyVal[7:])
+
+			// Try exact match first
+			if converted, exists := pc.Config.SpiceProxyConv[hostname]; exists {
+				spiceConfig["proxy"] = fmt.Sprintf("http://%s", converted)
+				DebugLog("Converted proxy to: %s (exact match)", spiceConfig["proxy"])
+			} else {
+				// Try without port, then add port back
+				parts := strings.Split(hostname, ":")
+				if len(parts) == 2 {
+					hostOnly := parts[0]
+					port := parts[1]
+
+					// Check if we have a conversion for hostname:port
+					hostPort := fmt.Sprintf("%s:%s", hostOnly, port)
+					if converted, exists := pc.Config.SpiceProxyConv[hostPort]; exists {
+						spiceConfig["proxy"] = fmt.Sprintf("http://%s", converted)
+						DebugLog("Converted proxy to: %s (host:port match)", spiceConfig["proxy"])
+					} else if converted, exists := pc.Config.SpiceProxyConv[hostOnly]; exists {
+						// Conversion found for hostname only, add port back
+						spiceConfig["proxy"] = fmt.Sprintf("http://%s:%s", converted, port)
+						DebugLog("Converted proxy to: %s (hostname match, port preserved)", spiceConfig["proxy"])
+					}
+				}
+			}
 		}
-
-		// Get SPICE proxy - this may require a direct API call if not in the library
-		// For now, we'll construct the basic config
-		spiceConfig := make(map[string]string)
-
-		// Call the SPICE proxy endpoint
-		// This is a workaround since the library might not have direct support
-		// You may need to use vm's underlying client to make a raw API call
-		_ = vm // Use vm to avoid unused variable error
-
-		// Placeholder - in production you'd make: POST /nodes/{node}/qemu/{vmid}/spiceproxy
-		// and parse the returned config
-		spiceConfig["type"] = "spice"
-		spiceConfig["host"] = vmNode
-		spiceConfig["port"] = "3128"
-
-		return spiceConfig, fmt.Errorf("SPICE proxy requires manual API call - not fully implemented yet")
 	}
 
-	return nil, fmt.Errorf("SPICE only supported for QEMU VMs")
+	// Add additional parameters from config
+	for key, value := range pc.Config.AddlParams {
+		spiceConfig[key] = value
+		DebugLog("Added additional param: %s=%s", key, value)
+	}
+
+	DebugLog("Final SPICE config: %+v", spiceConfig)
+	return spiceConfig, nil
 }

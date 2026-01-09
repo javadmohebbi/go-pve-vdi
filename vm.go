@@ -106,28 +106,19 @@ func ConnectToVM(pc *ProxmoxClient, vm *VMInfo, kiosk bool, viewerKiosk bool, fu
 	var configBuffer bytes.Buffer
 	configBuffer.WriteString("[virt-viewer]\n")
 
-	// Process SPICE config
+	// Process SPICE config (proxy conversion and additional params already done in GetSPICEConfig)
 	for key, value := range spiceConfig {
-		if key == "proxy" {
-			// Handle proxy conversion
-			if strings.HasPrefix(value, "http://") {
-				val := strings.ToLower(value[7:])
-				if converted, ok := pc.Config.SpiceProxyConv[val]; ok {
-					configBuffer.WriteString(fmt.Sprintf("%s=http://%s\n", key, converted))
-				} else {
-					configBuffer.WriteString(fmt.Sprintf("%s=%s\n", key, value))
-				}
-			} else {
-				configBuffer.WriteString(fmt.Sprintf("%s=%s\n", key, value))
-			}
-		} else {
-			configBuffer.WriteString(fmt.Sprintf("%s=%s\n", key, value))
-		}
+		configBuffer.WriteString(fmt.Sprintf("%s=%s\n", key, value))
 	}
 
-	// Add additional parameters
-	for key, value := range pc.Config.AddlParams {
-		configBuffer.WriteString(fmt.Sprintf("%s=%s\n", key, value))
+	configContent := configBuffer.String()
+	DebugLog("SPICE virt-viewer config:\n%s", configContent)
+
+	// Save to temp file for debugging if debug enabled
+	if pc.Config.Debug || pc.Config.INIDebug {
+		tmpFile := "/tmp/go-pve-vdi-spice.ini"
+		os.WriteFile(tmpFile, []byte(configContent), 0600)
+		fmt.Printf("DEBUG: SPICE config saved to %s\n", tmpFile)
 	}
 
 	// Find virt-viewer command
@@ -146,6 +137,12 @@ func ConnectToVM(pc *ProxmoxClient, vm *VMInfo, kiosk bool, viewerKiosk bool, fu
 	args = append(args, "-") // Read from stdin
 
 	// Execute virt-viewer
+	DebugLog("Launching virt-viewer: %s %v", vvCmd, args)
+
+	// Reset buffer for command
+	configBuffer.Reset()
+	configBuffer.WriteString(configContent)
+
 	cmd := exec.Command(vvCmd, args...)
 	cmd.Stdin = &configBuffer
 	cmd.Stdout = os.Stdout
@@ -156,6 +153,7 @@ func ConnectToVM(pc *ProxmoxClient, vm *VMInfo, kiosk bool, viewerKiosk bool, fu
 		return fmt.Errorf("unable to start virt-viewer: %w", err)
 	}
 
+	DebugLog("virt-viewer started with PID %d", cmd.Process.Pid)
 	return nil
 }
 

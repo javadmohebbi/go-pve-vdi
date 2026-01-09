@@ -41,6 +41,7 @@ type Config struct {
 	ViewerKiosk    bool
 	Fullscreen     bool
 	INIDebug       bool
+	Debug          bool // Enable debug output
 	GuestType      string
 	ShowReset      bool
 	ShowHibernate  bool
@@ -194,6 +195,9 @@ func LoadConfig(configLocation string, configType string, username string, passw
 		if general.HasKey("inidebug") {
 			cfg.INIDebug, _ = general.Key("inidebug").Bool()
 		}
+		if general.HasKey("debug") {
+			cfg.Debug, _ = general.Key("debug").Bool()
+		}
 		if general.HasKey("guest_type") {
 			cfg.GuestType = general.Key("guest_type").String()
 		}
@@ -327,6 +331,7 @@ func LoadConfig(configLocation string, configType string, username string, passw
 		spice := iniCfg.Section("SpiceProxyRedirect")
 		for _, key := range spice.KeyStrings() {
 			cfg.SpiceProxyConv[key] = spice.Key(key).String()
+			DebugLog("SpiceProxyRedirect: '%s' => '%s'", key, cfg.SpiceProxyConv[key])
 		}
 	}
 
