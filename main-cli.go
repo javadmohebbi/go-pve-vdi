@@ -19,6 +19,7 @@ func runCLI(config *Config) {
 	fmt.Println("=== Proxmox VDI Client (CLI Mode) ===")
 	fmt.Printf("Title: %s\n", config.Title)
 	fmt.Printf("Current Host Set: %s\n", config.CurrentHostSet)
+	fmt.Printf("Protocol: %s\n", strings.ToUpper(config.Protocol))
 	if config.Debug {
 		fmt.Println("Debug Mode: ENABLED")
 	}
@@ -143,7 +144,7 @@ func manageVM(pc *ProxmoxClient, vm *VMInfo, config *Config) {
 
 		fmt.Println("Actions:")
 		if vm.Status == "running" {
-			fmt.Println("  1 - Connect (SPICE)")
+			fmt.Printf("  1 - Connect (%s)\n", strings.ToUpper(config.Protocol))
 			fmt.Println("  2 - Stop VM")
 			fmt.Println("  3 - Reset VM (Stop & Start)")
 		} else {
@@ -170,12 +171,12 @@ func manageVM(pc *ProxmoxClient, vm *VMInfo, config *Config) {
 		case "1":
 			if vm.Status == "running" {
 				// Connect
-				fmt.Println("\n🔌 Connecting to VM via SPICE...")
+				fmt.Printf("\n🔌 Connecting to VM via %s...\n", strings.ToUpper(config.Protocol))
 				err := ConnectToVM(pc, vm, config.Kiosk, config.ViewerKiosk, config.Fullscreen)
 				if err != nil {
 					fmt.Printf("❌ Connection failed: %v\n", err)
 				} else {
-					fmt.Println("✅ SPICE viewer launched")
+					fmt.Printf("✅ %s viewer launched\n", strings.ToUpper(config.Protocol))
 				}
 			} else {
 				// Start

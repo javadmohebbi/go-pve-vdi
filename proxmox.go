@@ -391,3 +391,61 @@ func (pc *ProxmoxClient) GetSPICEConfig(vmNode string, vmID int, vmType string) 
 	DebugLog("Final SPICE config: %+v", spiceConfig)
 	return spiceConfig, nil
 }
+
+// GetVNCConfig gets VNC proxy configuration for a VM or Container
+func (pc *ProxmoxClient) GetVNCConfig(vmNode string, vmID int, vmType string) (map[string]string, error) {
+	if pc.Client == nil {
+		return nil, fmt.Errorf("not connected to Proxmox")
+	}
+
+	ctx := context.Background()
+	DebugLog("Getting VNC config for %s %d on node %s", vmType, vmID, vmNode)
+
+	// Build API endpoint based on VM type
+	var url string
+	if vmType == "qemu" {
+		url = fmt.Sprintf("/nodes/%s/qemu/%d/vncproxy", vmNode, vmID)
+	} else if vmType == "lxc" {
+		url = fmt.Sprintf("/nodes/%s/lxc/%d/vncproxy", vmNode, vmID)
+	} else {
+		return nil, fmt.Errorf("unsupported VM type for VNC: %s", vmType)
+	}
+
+	DebugLog("Calling VNC proxy API: %s", url)
+
+	// Make API call
+	var result map[string]interface{}
+	err := pc.Client.Post(ctx, url, nil, &result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get VNC proxy config: %w", err)
+	}
+
+	DebugLog("VNC proxy response: %+v", result)
+
+	// Extract VNC host from node name
+	// Proxmox VNC API doesn't return the host, so we use the node name
+	vncHost := vmNode
+
+	// Build VNC configuration map for virt-viewer
+	vncConfig := map[string]string{
+		"type": "vnc",
+		"host": vncHost,
+	}
+
+	// Add port and ticket from response
+	if port, ok := result["port"]; ok {
+		vncConfig["port"] = fmt.Sprintf("%v", port)
+	}
+	if ticket, ok := result["ticket"]; ok {
+		vncConfig["password"] = fmt.Sprintf("%v", ticket)
+	}
+
+	// Add additional parameters from config
+	for key, value := range pc.Config.AddlParams {
+		vncConfig[key] = value
+		DebugLog("Added additional param: %s=%s", key, value)
+	}
+
+	DebugLog("Final VNC config: %+v", vncConfig)
+	return vncConfig, nil
+}

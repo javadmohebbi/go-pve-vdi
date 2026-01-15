@@ -20,6 +20,7 @@
 
 [General]
 title=My Company VDI
+protocol=spice
 kiosk=false
 viewer_kiosk=true
 fullscreen=true
@@ -207,6 +208,23 @@ proxmox.example.com=8006
 #enable-usbredir=yes
 
 # ============================================================================
+# EXAMPLE 11: VNC Protocol for LXC Containers
+# ============================================================================
+
+#[General]
+#title=VNC for Containers
+#protocol=vnc
+#viewer_kiosk=true
+#fullscreen=true
+#
+#[Authentication]
+#auth_backend=pve
+#tls_verify=true
+#
+#[Hosts]
+#proxmox.example.com=8006
+
+# ============================================================================
 # CONFIGURATION OPTIONS REFERENCE
 # ============================================================================
 
@@ -221,6 +239,8 @@ proxmox.example.com=8006
 # fullscreen         - Launch viewer in fullscreen (true/false, default: true)
 # inidebug           - Show SPICE config debug window (true/false, default: false)
 # guest_type         - VM type filter: "both", "qemu", or "lxc" (default: "both")
+# protocol           - Display protocol: "spice" or "vnc" (default: "spice")
+#                      Note: SPICE only works with QEMU VMs. Use VNC for LXC containers.
 # show_reset         - Show VM reset button (true/false, default: false)
 # show_hibernate     - Show VM hibernate button (true/false, default: false)
 # window_width       - Window width in pixels (optional)

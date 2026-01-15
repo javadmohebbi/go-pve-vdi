@@ -86,7 +86,7 @@ func FindVirtViewerCommand() (string, error) {
 	}
 }
 
-// ConnectToVM starts the VM if needed and connects via SPICE
+// ConnectToVM starts the VM if needed and connects via configured protocol (SPICE or VNC)
 func ConnectToVM(pc *ProxmoxClient, vm *VMInfo, kiosk bool, viewerKiosk bool, fullscreen bool) error {
 	// Check if VM is running, start if not
 	if vm.Status != "running" {
@@ -96,29 +96,48 @@ func ConnectToVM(pc *ProxmoxClient, vm *VMInfo, kiosk bool, viewerKiosk bool, fu
 		}
 	}
 
-	// Get SPICE configuration
-	spiceConfig, err := pc.GetSPICEConfig(vm.Node, vm.VMID, vm.Type)
-	if err != nil {
-		return fmt.Errorf("unable to get SPICE configuration: %w\nIs SPICE display configured for your VM?", err)
+	// Get protocol-specific configuration
+	var config map[string]string
+	var err error
+
+	protocol := pc.Config.Protocol
+	DebugLog("Using protocol: %s", protocol)
+
+	switch protocol {
+	case "vnc":
+		config, err = pc.GetVNCConfig(vm.Node, vm.VMID, vm.Type)
+		if err != nil {
+			return fmt.Errorf("unable to get VNC configuration: %w", err)
+		}
+	case "spice":
+		// Validate SPICE support for VM type
+		if vm.Type != "qemu" {
+			return fmt.Errorf("SPICE protocol only supported for QEMU VMs, not %s. Use 'vnc' protocol for LXC containers", vm.Type)
+		}
+		config, err = pc.GetSPICEConfig(vm.Node, vm.VMID, vm.Type)
+		if err != nil {
+			return fmt.Errorf("unable to get SPICE configuration: %w\nIs SPICE display configured for your VM?", err)
+		}
+	default:
+		return fmt.Errorf("unsupported protocol: %s (must be 'spice' or 'vnc')", protocol)
 	}
 
 	// Build virt-viewer configuration
 	var configBuffer bytes.Buffer
 	configBuffer.WriteString("[virt-viewer]\n")
 
-	// Process SPICE config (proxy conversion and additional params already done in GetSPICEConfig)
-	for key, value := range spiceConfig {
+	for key, value := range config {
 		configBuffer.WriteString(fmt.Sprintf("%s=%s\n", key, value))
 	}
 
 	configContent := configBuffer.String()
-	DebugLog("SPICE virt-viewer config:\n%s", configContent)
+	DebugLog("%s virt-viewer config:\n%s", strings.ToUpper(protocol), configContent)
 
 	// Save to temp file for debugging if debug enabled
 	if pc.Config.Debug || pc.Config.INIDebug {
-		tmpFile := "/tmp/go-pve-vdi-spice.ini"
+		tmpFile := fmt.Sprintf("/tmp/go-pve-vdi-%s.ini", protocol)
 		os.WriteFile(tmpFile, []byte(configContent), 0600)
-		fmt.Printf("DEBUG: SPICE config saved to %s\n", tmpFile)
+		fmt.Printf("DEBUG: %s config saved to %s\n", strings.ToUpper(protocol), tmpFile)
 	}
 
 	// Find virt-viewer command
@@ -153,7 +172,7 @@ func ConnectToVM(pc *ProxmoxClient, vm *VMInfo, kiosk bool, viewerKiosk bool, fu
 		return fmt.Errorf("unable to start virt-viewer: %w", err)
 	}
 
-	DebugLog("virt-viewer started with PID %d", cmd.Process.Pid)
+	DebugLog("virt-viewer started with PID %d using %s protocol", cmd.Process.Pid, strings.ToUpper(protocol))
 	return nil
 }
 

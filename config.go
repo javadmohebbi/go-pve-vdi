@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"gopkg.in/ini.v1"
 )
@@ -43,6 +44,7 @@ type Config struct {
 	INIDebug       bool
 	Debug          bool // Enable debug output
 	GuestType      string
+	Protocol       string // "spice" or "vnc"
 	ShowReset      bool
 	ShowHibernate  bool
 	WindowWidth    int
@@ -63,6 +65,7 @@ func NewConfig() *Config {
 		Fullscreen:     true,
 		INIDebug:       false,
 		GuestType:      "both",
+		Protocol:       "spice", // Default to SPICE for backward compatibility
 		ShowReset:      false,
 		ShowHibernate:  false,
 		WindowWidth:    0,
@@ -200,6 +203,14 @@ func LoadConfig(configLocation string, configType string, username string, passw
 		}
 		if general.HasKey("guest_type") {
 			cfg.GuestType = general.Key("guest_type").String()
+		}
+		if general.HasKey("protocol") {
+			protocol := strings.ToLower(general.Key("protocol").String())
+			if protocol == "spice" || protocol == "vnc" {
+				cfg.Protocol = protocol
+			} else {
+				return nil, fmt.Errorf("invalid protocol '%s': must be 'spice' or 'vnc'", protocol)
+			}
 		}
 		if general.HasKey("show_reset") {
 			cfg.ShowReset, _ = general.Key("show_reset").Bool()
